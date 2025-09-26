@@ -12,6 +12,7 @@ import type {
   TouchedViewDataAtPoint,
   ViewConfig,
 } from './ReactNativeTypes';
+import type {TransitionTypes} from 'react/src/ReactTransitionType';
 import {dispatchEvent} from './ReactFabricEventEmitter';
 import {
   NoEventPriority,
@@ -67,7 +68,10 @@ import {
   getInspectorDataForInstance,
 } from './ReactNativeFiberInspector';
 
-import {passChildrenWhenCloningPersistedNodes} from 'shared/ReactFeatureFlags';
+import {
+  enableProfilerTimer,
+  passChildrenWhenCloningPersistedNodes,
+} from 'shared/ReactFeatureFlags';
 import {REACT_CONTEXT_TYPE} from 'shared/ReactSymbols';
 import type {ReactContext} from 'shared/ReactTypes';
 
@@ -813,3 +817,132 @@ export const supportsMicrotasks: boolean =
 
 export const scheduleMicrotask: any =
   typeof queueMicrotask === 'function' ? queueMicrotask : scheduleTimeout;
+
+export function applyViewTransitionName(
+  instance: Instance,
+  name: string,
+  className: ?string,
+): void {
+  // Not yet implemented
+}
+
+export function restoreViewTransitionName(
+  instance: Instance,
+  props: Props,
+): void {
+  // Not yet implemented
+}
+
+export function cancelViewTransitionName(
+  instance: Instance,
+  name: string,
+  props: Props,
+): void {
+  // Not yet implemented
+}
+
+export function cancelRootViewTransitionName(rootContainer: Container): void {
+  // Not yet implemented
+}
+
+export function restoreRootViewTransitionName(rootContainer: Container): void {
+  // Not yet implemented
+}
+
+export type InstanceMeasurement = null;
+
+export function measureInstance(instance: Instance): InstanceMeasurement {
+  // This heuristic is better implemented at the native layer.
+  return null;
+}
+
+export function wasInstanceInViewport(
+  measurement: InstanceMeasurement,
+): boolean {
+  return true;
+}
+
+export function hasInstanceChanged(
+  oldMeasurement: InstanceMeasurement,
+  newMeasurement: InstanceMeasurement,
+): boolean {
+  return false;
+}
+
+export function hasInstanceAffectedParent(
+  oldMeasurement: InstanceMeasurement,
+  newMeasurement: InstanceMeasurement,
+): boolean {
+  return false;
+}
+
+export function cloneRootViewTransitionContainer(
+  rootContainer: Container,
+): Instance {
+  throw new Error('Not implemented.');
+}
+
+export function removeRootViewTransitionClone(
+  rootContainer: Container,
+  clone: Instance,
+): void {
+  throw new Error('Not implemented.');
+}
+
+export function startViewTransition(
+  suspendedState: null | SuspendedState,
+  rootContainer: Container,
+  transitionTypes: null | TransitionTypes,
+  mutationCallback: () => void,
+  layoutCallback: () => void,
+  afterMutationCallback: () => void,
+  spawnedWorkCallback: () => void,
+  passiveCallback: () => mixed,
+  errorCallback: mixed => void,
+  blockedCallback: string => void, // Profiling-only
+  finishedAnimation: () => void, // Profiling-only
+): null | RunningViewTransition {
+  mutationCallback();
+  layoutCallback();
+  // Skip afterMutationCallback(). We don't need it since we're not animating.
+  spawnedWorkCallback();
+  if (enableProfilerTimer) {
+    finishedAnimation();
+  }
+  // Skip passiveCallback(). Spawned work will schedule a task.
+  return null;
+}
+
+export type RunningViewTransition = null;
+
+export type GestureTimeline = null;
+
+export function startGestureTransition(
+  suspendedState: null | SuspendedState,
+  rootContainer: Container,
+  timeline: GestureTimeline,
+  rangeStart: number,
+  rangeEnd: number,
+  transitionTypes: null | TransitionTypes,
+  mutationCallback: () => void,
+  animateCallback: () => void,
+  errorCallback: mixed => void,
+  finishedAnimation: () => void, // Profiling-only
+): null | RunningViewTransition {
+  mutationCallback();
+  animateCallback();
+  if (enableProfilerTimer) {
+    finishedAnimation();
+  }
+  return null;
+}
+
+export function stopViewTransition(transition: RunningViewTransition) {}
+
+export type ViewTransitionInstance = null | {name: string, ...};
+
+export function createViewTransitionInstance(
+  name: string,
+): ViewTransitionInstance {
+  return null;
+}
