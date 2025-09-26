@@ -43,14 +43,15 @@ import {
 } from 'react-native/Libraries/ReactPrivate/ReactNativePrivateInterface';
 
 const {
-  createNode,
+  appendChild: appendChildNode,
+  appendChildToSet: appendChildNodeToSet,
   cloneNodeWithNewChildren,
   cloneNodeWithNewChildrenAndProps,
   cloneNodeWithNewProps,
-  createChildSet: createChildNodeSet,
-  appendChild: appendChildNode,
-  appendChildToSet: appendChildNodeToSet,
   completeRoot,
+  createChildSet: createChildNodeSet,
+  createNode,
+  measureSync,
   registerEventHandler,
   unstable_DefaultEventPriority: FabricDefaultPriority,
   unstable_DiscreteEventPriority: FabricDiscretePriority,
@@ -849,11 +850,35 @@ export function restoreRootViewTransitionName(rootContainer: Container): void {
   // Not yet implemented
 }
 
-export type InstanceMeasurement = null;
+export type InstanceMeasurement = {
+  rect: ClientRect | DOMRect,
+  abs: boolean, // is absolutely positioned
+  clip: boolean, // is a clipping parent
+  view: boolean, // is in viewport bounds
+};
 
 export function measureInstance(instance: Instance): InstanceMeasurement {
-  // This heuristic is better implemented at the native layer.
-  return null;
+  if(measureSync==null){
+    return {
+      rect: DOMRect.fromRect(),
+      abs: false,
+      clip: false,
+      view: true,
+    };
+  }
+  const {x, y, width, height} = measureSync(instance);
+  return {
+    rect: DOMRect.fromRect({
+      x,
+      y,
+      width,
+      height,
+    }),
+    abs: false,
+    clip: false,
+    view: true,
+  };
+
 }
 
 export function wasInstanceInViewport(
