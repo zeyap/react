@@ -49,6 +49,43 @@ import {
   enableProfilerTimer,
 } from 'shared/ReactFeatureFlags';
 
+import type {ViewTransitionClass} from 'shared/ReactTypes';
+
+// Checks if the child ViewTransition has matching transition types with the parent.
+// If either is a string (applies to all types) or undefined, they match.
+// If both are objects, they must share at least one common type key.
+function hasMatchingTransitionTypes(
+  parentEventClass: ?ViewTransitionClass,
+  childEventClass: ?ViewTransitionClass,
+  parentDefaultClass: ?ViewTransitionClass,
+  childDefaultClass: ?ViewTransitionClass,
+): boolean {
+  // Use eventClass if defined, otherwise fall back to defaultClass
+  const parentClass = parentEventClass ?? parentDefaultClass;
+  const childClass = childEventClass ?? childDefaultClass;
+
+  // If either is null/undefined, no match
+  if (parentClass == null || childClass == null) {
+    return false;
+  }
+
+  // If either is a string (applies to all types), they match
+  if (typeof parentClass === 'string' || typeof childClass === 'string') {
+    return true;
+  }
+
+  // Both are ViewTransitionClassPerType objects - check for common keys
+  const parentKeys = Object.keys(parentClass);
+  for (let i = 0; i < parentKeys.length; i++) {
+    const key = parentKeys[i];
+    if (childClass[key] !== undefined) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export let shouldStartViewTransition: boolean = false;
 
 export function resetShouldStartViewTransition(): void {
@@ -285,6 +322,96 @@ function commitAppearingPairViewTransitions(placement: Fiber): void {
   }
 }
 
+function findNestedEnterViewTransitions(
+  fiber: Fiber,
+  gesture: boolean,
+  parentEnterClass: ?ViewTransitionClass,
+  parentDefaultClass: ?ViewTransitionClass,
+): void {
+  let child = fiber.child;
+  while (child !== null) {
+    if (child.tag === ViewTransitionComponent) {
+      const childState: ViewTransitionState = child.stateNode;
+      if (!childState.paired) {
+        // Only include children that have an enter class specified
+        // and matching transition types with the parent.
+        const childProps: ViewTransitionProps = child.memoizedProps;
+        const enterClassName: ?string = getViewTransitionClassName(
+          childProps.default,
+          childProps.enter,
+        );
+        if (
+          enterClassName != null &&
+          enterClassName !== 'none' &&
+          hasMatchingTransitionTypes(
+            parentEnterClass,
+            childProps.enter,
+            parentDefaultClass,
+            childProps.default,
+          )
+        ) {
+          commitEnterViewTransitions(child, gesture);
+        }
+      }
+    } else if (
+      child.tag === OffscreenComponent &&
+      child.memoizedState !== null
+    ) {
+      // Skip hidden subtrees.
+    } else {
+      findNestedEnterViewTransitions(
+        child,
+        gesture,
+        parentEnterClass,
+        parentDefaultClass,
+      );
+    }
+    child = child.sibling;
+  }
+}
+
+function findNestedExitViewTransitions(
+  fiber: Fiber,
+  parentExitClass: ?ViewTransitionClass,
+  parentDefaultClass: ?ViewTransitionClass,
+): void {
+  let child = fiber.child;
+  while (child !== null) {
+    if (child.tag === ViewTransitionComponent) {
+      const childState: ViewTransitionState = child.stateNode;
+      if (!childState.paired) {
+        // Only include children that have an exit class specified
+        // and matching transition types with the parent.
+        const childProps: ViewTransitionProps = child.memoizedProps;
+        const exitClassName: ?string = getViewTransitionClassName(
+          childProps.default,
+          childProps.exit,
+        );
+        if (
+          exitClassName != null &&
+          exitClassName !== 'none' &&
+          hasMatchingTransitionTypes(
+            parentExitClass,
+            childProps.exit,
+            parentDefaultClass,
+            childProps.default,
+          )
+        ) {
+          commitExitViewTransitions(child);
+        }
+      }
+    } else if (
+      child.tag === OffscreenComponent &&
+      child.memoizedState !== null
+    ) {
+      // Skip hidden subtrees.
+    } else {
+      findNestedExitViewTransitions(child, parentExitClass, parentDefaultClass);
+    }
+    child = child.sibling;
+  }
+}
+
 export function commitEnterViewTransitions(
   placement: Fiber,
   gesture: boolean,
@@ -324,6 +451,16 @@ export function commitEnterViewTransitions(
       }
     } else {
       commitAppearingPairViewTransitions(placement);
+    }
+    // Also fire enter events on nested ViewTransitionComponents.
+    // Each nested VTC checks its own paired state before firing.
+    if (props.cascadingEnterExit) {
+      findNestedEnterViewTransitions(
+        placement,
+        gesture,
+        props.enter,
+        props.default,
+      );
     }
   } else if ((placement.subtreeFlags & ViewTransitionStatic) !== NoFlags) {
     let child = placement.child;
@@ -453,6 +590,11 @@ export function commitExitViewTransitions(deletion: Fiber): void {
     if (appearingViewTransitions !== null) {
       // Look for more pairs deeper in the tree.
       commitDeletedPairViewTransitions(deletion);
+    }
+    // Also fire exit events on nested ViewTransitionComponents.
+    // Each nested VTC checks its own paired state before firing.
+    if (props.cascadingEnterExit) {
+      findNestedExitViewTransitions(deletion, props.exit, props.default);
     }
   } else if ((deletion.subtreeFlags & ViewTransitionStatic) !== NoFlags) {
     let child = deletion.child;

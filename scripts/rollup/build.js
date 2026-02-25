@@ -371,11 +371,11 @@ function getPlugins(
     const isProduction = isProductionBundleType(bundleType);
     const isProfiling = isProfilingBundleType(bundleType);
 
-    const needsMinifiedByClosure =
-      bundleType !== ESM_PROD &&
-      bundleType !== ESM_DEV &&
-      // TODO(@poteto) figure out ICE in closure compiler for eslint-plugin-react-hooks (ts)
-      bundle.tsconfig == null;
+    const needsMinifiedByClosure = false;
+      // bundleType !== ESM_PROD &&
+      // bundleType !== ESM_DEV &&
+      // // TODO(@poteto) figure out ICE in closure compiler for eslint-plugin-react-hooks (ts)
+      // bundle.tsconfig == null;
 
     return [
       // Keep dynamic imports as externals

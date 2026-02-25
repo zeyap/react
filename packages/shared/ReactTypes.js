@@ -303,6 +303,7 @@ export type ViewTransitionProps = {
   exit?: ViewTransitionClass,
   share?: ViewTransitionClass,
   update?: ViewTransitionClass,
+  cascadingEnterExit?: boolean,
   onEnter?: (
     instance: ViewTransitionInstance,
     types: Array<string>,

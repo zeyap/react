@@ -363,6 +363,9 @@ export function addViewTransitionFinishedListener(
 export function createViewTransitionInstance(
   name: string,
 ): ViewTransitionInstance {
+  if (__DEV__) {
+    console.warn('createViewTransitionInstance is not implemented');
+  }
   return {name};
 }
 
@@ -402,14 +405,6 @@ export function startViewTransition(
       layoutCallback();
       afterMutationCallback();
     },
-    // onReady
-    () => {
-      spawnedWorkCallback();
-    },
-    // onComplete
-    () => {
-      passiveCallback();
-    },
   );
 
   if (transition == null) {
@@ -426,6 +421,14 @@ export function startViewTransition(
     // Skip passiveCallback(). Spawned work will schedule a task.
     return null;
   }
+
+  transition.ready.then(() => {
+    spawnedWorkCallback();
+  });
+
+  transition.finished.finally(() => {
+    passiveCallback();
+  });
 
   return transition;
 }
